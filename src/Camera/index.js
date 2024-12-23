@@ -12,7 +12,7 @@ const CameraScreen = () => {
     const { hasPermission, requestPermission } = useCameraPermission();
     const [isActive, setIsActive] = useState(false);
     const [photo, setPhoto] = useState(null);
-    const [flash, setFlash] = useState("off"); // Flash state
+    const [flash, setFlash] = useState("off");
 
     const camera = useRef(null);
 
@@ -32,7 +32,7 @@ const CameraScreen = () => {
     const onTakePicturePressed = async () => {
         try {
             const photo = await camera.current?.takePhoto({
-                flash: flash, // Use the current flash mode
+                flash: flash,
             });
             setPhoto(photo);
             console.log("Captured photo:", photo);
@@ -48,8 +48,7 @@ const CameraScreen = () => {
         }
         const result = await fetch(`file://${photo.path}`);
         const data = await result.blob();
-        console.log("uploaded data:", data);
-        //upload data to your network storage
+        // Upload data to your network storage
     };
 
     const toggleFlash = () => {
@@ -69,11 +68,11 @@ const CameraScreen = () => {
                     console.log('User cancelled image picker');
                 } else if (response.errorCode) {
                     console.log('ImagePicker Error: ', response.errorMessage);
-                } else {
+                } else if (response.assets && response.assets.length > 0) {
                     // Handle the selected image
                     const selectedPhoto = response.assets[0];
                     console.log('Selected image:', selectedPhoto);
-                    setPhoto(selectedPhoto);
+                    setPhoto({ path: selectedPhoto.uri }); // Use the `uri` directly
                 }
             }
         );
@@ -91,16 +90,17 @@ const CameraScreen = () => {
         <View style={{ flex: 1 }}>
             {photo ? (
                 <>
-                    <Image source={{ uri: photo.uri }} style={StyleSheet.absoluteFill} />
+                    <Image source={{ uri: `file://${photo.path}` }} style={StyleSheet.absoluteFill} />
                     <Pressable onPress={() => setPhoto(null)} style={styles.backIcon}>
                         <Ionicons name="arrow-back-circle-outline" size={50} color="white" />
                     </Pressable>
-                    <Pressable onPress={uploadPhoto} style={styles.captureButton}>
+                    <Pressable onPress={onTakePicturePressed} style={styles.captureButton}>
                         <Ionicons name="checkmark-done-sharp" size={30} color="coral" />
                     </Pressable>
                 </>
             ) : (
                 <>
+
                     <Camera
                         ref={camera}
                         style={StyleSheet.absoluteFill}
@@ -108,6 +108,7 @@ const CameraScreen = () => {
                         isActive={isActive && !photo}
                         photo={true}
                     />
+
                     <Ionicons
                         name="close"
                         size={30}
@@ -144,6 +145,7 @@ const CameraScreen = () => {
                         <Ionicons name="help-circle-outline" size={30} color="white" />
                     </Pressable>
 
+                    {/* Barcode-like bordered frame */}
                     <View style={styles.barcodeFrame}>
                         <View style={[styles.corner, styles.topLeft]} />
                         <View style={[styles.corner, styles.topRight]} />
