@@ -4,7 +4,7 @@ import { useCameraPermission, useCameraDevice, Camera } from "react-native-visio
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
-
+import { launchImageLibrary } from 'react-native-image-picker';  // Import image picker
 
 const CameraScreen = () => {
     const navigation = useNavigation();
@@ -30,7 +30,6 @@ const CameraScreen = () => {
     }, [hasPermission]);
 
     const onTakePicturePressed = async () => {
-
         try {
             const photo = await camera.current?.takePhoto({
                 flash: flash, // Use the current flash mode
@@ -49,13 +48,35 @@ const CameraScreen = () => {
         }
         const result = await fetch(`file://${photo.path}`);
         const data = await result.blob();
-        console.log("uploaeded data:", data);
+        console.log("uploaded data:", data);
         //upload data to your network storage
     };
 
     const toggleFlash = () => {
         const nextFlashMode = flash === "off" ? "on" : flash === "on" ? "auto" : "off";
         setFlash(nextFlashMode);
+    };
+
+    // Function to open the gallery
+    const openGallery = () => {
+        launchImageLibrary(
+            {
+                mediaType: 'photo',
+                includeBase64: false, // Set to true if you want base64 encoded image
+            },
+            (response) => {
+                if (response.didCancel) {
+                    console.log('User cancelled image picker');
+                } else if (response.errorCode) {
+                    console.log('ImagePicker Error: ', response.errorMessage);
+                } else {
+                    // Handle the selected image
+                    const selectedPhoto = response.assets[0];
+                    console.log('Selected image:', selectedPhoto);
+                    setPhoto(selectedPhoto);
+                }
+            }
+        );
     };
 
     if (!hasPermission) {
@@ -70,21 +91,10 @@ const CameraScreen = () => {
         <View style={{ flex: 1 }}>
             {photo ? (
                 <>
-                    <Image source={{ uri: `file://${photo.path}` }} style={StyleSheet.absoluteFill} />
+                    <Image source={{ uri: photo.uri }} style={StyleSheet.absoluteFill} />
                     <Pressable onPress={() => setPhoto(null)} style={styles.backIcon}>
                         <Ionicons name="arrow-back-circle-outline" size={50} color="white" />
                     </Pressable>
-                    {/* <View style={{
-                        position: 'absolute',
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        paddingBottom: 50,
-                        backgroundColor: 'rgba(255, 255, 255, 0.15)'
-                    }}>
-                        
-                        <Button title="Upload" onPress={uploadPhoto} />
-                    </View> */}
                     <Pressable onPress={uploadPhoto} style={styles.captureButton}>
                         <Ionicons name="checkmark-done-sharp" size={30} color="coral" />
                     </Pressable>
@@ -111,6 +121,7 @@ const CameraScreen = () => {
                             size={30}
                             color="white"
                             style={styles.galleryIcon}
+                            onPress={openGallery} // Open gallery when clicked
                         />
                         <Pressable onPress={toggleFlash} style={styles.flashIcon}>
                             <Ionicons
@@ -133,7 +144,6 @@ const CameraScreen = () => {
                         <Ionicons name="help-circle-outline" size={30} color="white" />
                     </Pressable>
 
-                    {/* Barcode-like bordered frame */}
                     <View style={styles.barcodeFrame}>
                         <View style={[styles.corner, styles.topLeft]} />
                         <View style={[styles.corner, styles.topRight]} />
@@ -164,7 +174,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         left: 0,
         right: 0,
-        bottom: 100, // Adjust this value to move buttons closer or farther from the capture button
+        bottom: 100,
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingHorizontal: 40,
